@@ -3,6 +3,7 @@
 use App\Providers\AppServiceProvider;
 use App\Providers\AuthServiceProvider;
 use App\Providers\EventServiceProvider;
+use App\Providers\FortifyServiceProvider;
 use App\Providers\RouteServiceProvider;
 use Illuminate\Support\Facades\Facade;
 use Illuminate\Support\ServiceProvider;
@@ -74,7 +75,7 @@ return [
     |
     */
 
-    'timezone' => 'UTC',
+    'timezone' => 'Asia/Tokyo',
 
     /*
     |--------------------------------------------------------------------------
@@ -161,16 +162,17 @@ return [
 
     'providers' => ServiceProvider::defaultProviders()->merge([
         /*
-         * Package Service Providers...
-         */
+             * Package Service Providers...
+             */
 
         /*
-         * Application Service Providers...
-         */
+             * Application Service Providers...
+             */
         AppServiceProvider::class,
         AuthServiceProvider::class,
         // App\Providers\BroadcastServiceProvider::class,
         EventServiceProvider::class,
+        FortifyServiceProvider::class,
         RouteServiceProvider::class,
     ])->toArray(),
 
