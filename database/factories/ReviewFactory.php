@@ -1,48 +1,29 @@
 <?php
 
-namespace App\Models;
+namespace Database\Factories;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use App\Models\Book;
+use App\Models\Review;
+use App\Models\User;
+use Illuminate\Database\Eloquent\Factories\Factory;
 
-class Review extends Model
+/**
+ * @extends Factory<Review>
+ */
+class ReviewFactory extends Factory
 {
-    use HasFactory;
-
-    protected $fillable = [
-        'user_id',
-        'book_id',
-        'rating',
-        'comment',
-    ];
-
-    protected $casts = [
-        'rating' => 'integer',
-    ];
-
     /**
-     * レビューを投稿したユーザーを取得する。
+     * Define the model's default state.
+     *
+     * @return array<string, mixed>
      */
-    public function user(): BelongsTo
+    public function definition(): array
     {
-        return $this->belongsTo(User::class);
-    }
-
-    /**
-     * レビュー対象の書籍を取得する。
-     */
-    public function book(): BelongsTo
-    {
-        return $this->belongsTo(Book::class);
-    }
-
-    /**
-     * レビューにいいねしたユーザーを取得する。
-     */
-    public function likedByUsers(): BelongsToMany
-    {
-        return $this->belongsToMany(User::class, 'review_likes')->withTimestamps();
+        return [
+            'user_id' => User::factory(),
+            'book_id' => Book::factory(),
+            'rating' => fake()->numberBetween(1, 5),
+            'comment' => fake()->paragraph(),
+        ];
     }
 }
