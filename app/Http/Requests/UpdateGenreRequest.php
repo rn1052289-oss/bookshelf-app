@@ -8,29 +8,38 @@ use Illuminate\Validation\Rule;
 class UpdateGenreRequest extends FormRequest
 {
     /**
-     * Determine if the user is authorized to make this request.
+     * リクエストを許可する。
      */
     public function authorize(): bool
     {
-        return false;
+        return true;
     }
 
+    /**
+     * バリデーションルールを定義する。
+     */
     public function rules(): array
     {
         return [
             'name' => [
                 'required',
                 'string',
-                Rule::unique('genres', 'name')->ignore($this->route('genre')),
+                'max:255',
+                Rule::unique('genres', 'name')
+                    ->ignore($this->route('genre')),
             ],
         ];
     }
 
+    /**
+     * 日本語バリデーションメッセージを定義する。
+     */
     public function messages(): array
     {
         return [
             'name.required' => 'ジャンル名は必須です。',
             'name.string' => 'ジャンル名は文字列で入力してください。',
+            'name.max' => 'ジャンル名は255文字以内で入力してください。',
             'name.unique' => 'このジャンル名はすでに登録されています。',
         ];
     }

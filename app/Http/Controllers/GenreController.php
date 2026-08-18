@@ -2,13 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreGenreRequest;
+use App\Http\Requests\UpdateGenreRequest;
 use App\Models\Genre;
-use Illuminate\Http\Request;
 
 class GenreController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * ジャンル一覧を表示する。
      */
     public function index()
     {
@@ -18,7 +19,7 @@ class GenreController extends Controller
     }
 
     /**
-     * Show the form for creating a new resource.
+     * ジャンル登録画面を表示する。
      */
     public function create()
     {
@@ -26,15 +27,19 @@ class GenreController extends Controller
     }
 
     /**
-     * Store a newly created resource in storage.
+     * ジャンルを登録する。
      */
-    public function store(Request $request)
+    public function store(StoreGenreRequest $request)
     {
-        //
+        Genre::create($request->validated());
+
+        return redirect()
+            ->route('genres.index')
+            ->with('success', 'ジャンルを登録しました。');
     }
 
     /**
-     * Display the specified resource.
+     * ジャンル詳細を表示する。
      */
     public function show(Genre $genre)
     {
@@ -46,7 +51,7 @@ class GenreController extends Controller
     }
 
     /**
-     * Show the form for editing the specified resource.
+     * ジャンル編集画面を表示する。
      */
     public function edit(Genre $genre)
     {
@@ -54,18 +59,35 @@ class GenreController extends Controller
     }
 
     /**
-     * Update the specified resource in storage.
+     * ジャンルを更新する。
      */
-    public function update(Request $request, string $id)
+    public function update(UpdateGenreRequest $request, Genre $genre)
     {
-        //
+        $genre->update($request->validated());
+
+        return redirect()
+            ->route('genres.index')
+            ->with('success', 'ジャンルを更新しました。');
     }
 
     /**
-     * Remove the specified resource from storage.
+     * ジャンルを削除する。
      */
-    public function destroy(string $id)
+    public function destroy(Genre $genre)
     {
-        //
+        if ($genre->books()->exists()) {
+            return redirect()
+                ->route('genres.index')
+                ->with(
+                    'error',
+                    'このジャンルには書籍が紐付いているため削除できません。'
+                );
+        }
+
+        $genre->delete();
+
+        return redirect()
+            ->route('genres.index')
+            ->with('success', 'ジャンルを削除しました。');
     }
 }
