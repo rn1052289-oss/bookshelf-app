@@ -23,7 +23,7 @@ class ReadingPlanFactory extends Factory
         return [
             'user_id' => User::factory(),
             'book_id' => Book::factory(),
-            'due_date' => fake()->dateTimeBetween('today', '+3 months'),
+            'target_date' => fake()->dateTimeBetween('today', '+3 months'),
             'status' => ReadingPlanStatus::InProgress,
             'completed_at' => null,
             'reminded_at' => null,
