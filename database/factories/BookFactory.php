@@ -23,7 +23,7 @@ class BookFactory extends Factory
             'title' => fake()->sentence(4),
             'author' => fake()->name(),
             'isbn' => fake()->unique()->numerify('#############'),
-            'published_at' => fake()->date(),
+            'published_date' => fake()->date(),
             'description' => fake()->paragraph(),
             'image_url' => fake()->url(),
         ];
