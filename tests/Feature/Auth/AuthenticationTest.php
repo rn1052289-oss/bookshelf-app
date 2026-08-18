@@ -18,6 +18,10 @@ class AuthenticationTest extends TestCase
         $response = $this->get('/login');
 
         $response->assertOk();
+        $response->assertSee('name="email"', false);
+        $response->assertSee('name="password"', false);
+        $response->assertSee('会員登録');
+        $response->assertSee('href="'.route('register').'"', false);
     }
 
     /**
@@ -48,7 +52,10 @@ class AuthenticationTest extends TestCase
         ]);
 
         $this->assertGuest();
-        $response->assertSessionHasErrors('email');
+
+        $response->assertSessionHasErrors([
+            'email' => '認証情報が正しくありません。',
+        ]);
     }
 
     /**
