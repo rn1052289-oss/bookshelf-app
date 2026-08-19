@@ -3,6 +3,7 @@
 use App\Http\Controllers\BookController;
 use App\Http\Controllers\GenreController;
 use App\Http\Controllers\RankingController;
+use App\Http\Controllers\ReviewController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [BookController::class, 'index']);
@@ -28,6 +29,18 @@ Route::middleware('auth')->group(function () {
 
     Route::delete('/books/{book}', [BookController::class, 'destroy'])
         ->name('books.destroy');
+
+    Route::post('/books/{book}/reviews', [ReviewController::class, 'store'])
+        ->name('reviews.store');
+
+    Route::get('/reviews/{review}/edit', [ReviewController::class, 'edit'])
+        ->name('reviews.edit');
+
+    Route::put('/reviews/{review}', [ReviewController::class, 'update'])
+        ->name('reviews.update');
+
+    Route::delete('/reviews/{review}', [ReviewController::class, 'destroy'])
+        ->name('reviews.destroy');
 });
 
 Route::resource('genres', GenreController::class)
