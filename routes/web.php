@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\BookController;
+use App\Http\Controllers\GenreController;
 use App\Http\Controllers\RankingController;
 use Illuminate\Support\Facades\Route;
 
@@ -28,6 +29,9 @@ Route::middleware('auth')->group(function () {
     Route::delete('/books/{book}', [BookController::class, 'destroy'])
         ->name('books.destroy');
 });
+
+Route::resource('genres', GenreController::class)
+    ->middleware('auth');
 
 Route::get('/books/isbn/{isbn}', [BookController::class, 'searchByIsbn'])
     ->name('books.isbn');
