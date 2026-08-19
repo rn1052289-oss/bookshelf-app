@@ -1,22 +1,16 @@
 <?php
 
 use App\Http\Controllers\BookController;
+use App\Http\Controllers\RankingController;
 use Illuminate\Support\Facades\Route;
 
-/*
-|--------------------------------------------------------------------------
-| Web Routes
-|--------------------------------------------------------------------------
-|
-| Here is where you can register web routes for your application. These
-| routes are loaded by the RouteServiceProvider and all of them will
-| be assigned to the "web" middleware group. Make something great!
-|
-*/
+Route::get('/', [BookController::class, 'index']);
 
-Route::get('/', function () {
-    return view('welcome');
-});
+Route::get('/books', [BookController::class, 'index'])
+    ->name('books.index');
+
+Route::get('/ranking', [RankingController::class, 'index'])
+    ->name('ranking.index');
 
 Route::middleware('auth')->group(function () {
     Route::get('/books/create', [BookController::class, 'create'])
@@ -34,3 +28,6 @@ Route::middleware('auth')->group(function () {
     Route::delete('/books/{book}', [BookController::class, 'destroy'])
         ->name('books.destroy');
 });
+
+Route::get('/books/{book}', [BookController::class, 'show'])
+    ->name('books.show');
