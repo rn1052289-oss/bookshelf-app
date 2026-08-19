@@ -2,10 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreBookRequest;
+use App\Http\Requests\UpdateBookRequest;
 use App\Models\Book;
 use App\Models\Genre;
+use App\Services\GoogleBooksService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
+use Throwable;
 
 class BookController extends Controller
 {
@@ -74,5 +81,128 @@ class BookController extends Controller
         ]);
 
         return view('books.show', compact('book'));
+    }
+
+    /**
+     * 書籍登録画面を表示する。
+     */
+    public function create(): View
+    {
+        $genres = Genre::all();
+
+        return view('books.create', compact('genres'));
+    }
+
+    /**
+     * 書籍を登録する。
+     */
+    public function store(StoreBookRequest $request): RedirectResponse
+    {
+        $validated = $request->validated();
+        $genreIds = $validated['genres'];
+
+        unset($validated['genres']);
+
+        $book = DB::transaction(function () use ($request, $validated, $genreIds) {
+            $book = $request->user()->books()->create($validated);
+
+            $book->genres()->sync($genreIds);
+
+            return $book;
+        });
+
+        return redirect()
+            ->route('books.show', $book)
+            ->with('success', '書籍を登録しました。');
+    }
+
+    /**
+     * 書籍編集画面を表示する。
+     */
+    public function edit(Book $book): View
+    {
+        $this->authorize('update', $book);
+
+        $book->load('genres');
+        $genres = Genre::all();
+
+        return view('books.edit', compact('book', 'genres'));
+    }
+
+    /**
+     * 書籍を更新する。
+     */
+    public function update(UpdateBookRequest $request, Book $book): RedirectResponse
+    {
+        $this->authorize('update', $book);
+
+        $validated = $request->validated();
+        $genreIds = $validated['genres'];
+
+        unset($validated['genres']);
+
+        DB::transaction(function () use ($book, $validated, $genreIds) {
+            $book->update($validated);
+
+            $book->genres()->sync($genreIds);
+        });
+
+        return redirect()
+            ->route('books.show', $book)
+            ->with('success', '書籍を更新しました。');
+    }
+
+    /**
+     * 書籍を削除する。
+     */
+    public function destroy(Book $book): RedirectResponse
+    {
+        $this->authorize('delete', $book);
+
+        DB::transaction(function () use ($book) {
+            $book->delete();
+        });
+
+        return redirect()
+            ->route('books.index')
+            ->with('success', '書籍を削除しました。');
+    }
+
+    /**
+     * ISBNからGoogle Books APIで書籍情報を取得する。
+     */
+    public function searchByIsbn(string $isbn, GoogleBooksService $googleBooksService): JsonResponse
+    {
+        if (! preg_match('/^\d{13}$/', $isbn)) {
+            return response()->json([
+                'error' => 'ISBNは13桁の数字で入力してください。',
+            ], 422);
+        }
+
+        try {
+            $book = $googleBooksService->searchByIsbn($isbn);
+
+            if ($book === null) {
+                return response()->json([
+                    'error' => '書籍情報が見つかりませんでした。',
+                ], 404);
+            }
+
+            $volumeInfo = $book['volumeInfo'] ?? [];
+
+            return response()->json([
+                'title' => $volumeInfo['title'] ?? null,
+                'author' => isset($volumeInfo['authors'])
+                    ? implode(', ', $volumeInfo['authors'])
+                    : null,
+                'published_date' => $volumeInfo['publishedDate'] ?? null,
+                'description' => $volumeInfo['description'] ?? null,
+                'image_url' => $volumeInfo['imageLinks']['thumbnail'] ?? null,
+            ]);
+        } catch (Throwable $e) {
+            return response()->json([
+                'error' => 'Google Books APIから書籍情報を取得できませんでした。',
+            ], 503);
+        }
     }
 }
