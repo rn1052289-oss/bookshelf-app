@@ -29,5 +29,8 @@ Route::middleware('auth')->group(function () {
         ->name('books.destroy');
 });
 
+Route::get('/books/isbn/{isbn}', [BookController::class, 'searchByIsbn'])
+    ->name('books.isbn');
+
 Route::get('/books/{book}', [BookController::class, 'show'])
     ->name('books.show');
