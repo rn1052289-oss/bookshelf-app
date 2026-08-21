@@ -2,7 +2,10 @@
 
 namespace App\Exceptions;
 
+use App\Models\Book;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Throwable;
 
 class Handler extends ExceptionHandler
@@ -25,6 +28,20 @@ class Handler extends ExceptionHandler
     {
         $this->reportable(function (Throwable $e) {
             //
+        });
+
+        $this->renderable(function (NotFoundHttpException $e, $request) {
+            $previous = $e->getPrevious();
+
+            if (
+                $request->is('api/v1/books/*')
+                && $previous instanceof ModelNotFoundException
+                && $previous->getModel() === Book::class
+            ) {
+                return response()->json([
+                    'error' => '書籍が見つかりませんでした。',
+                ], 404);
+            }
         });
     }
 }
