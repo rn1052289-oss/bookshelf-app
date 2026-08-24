@@ -3,6 +3,7 @@
 use App\Http\Controllers\BookController;
 use App\Http\Controllers\FavoriteController;
 use App\Http\Controllers\GenreController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\RankingController;
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\ReviewLikeController;
@@ -52,10 +53,15 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/reviews/{review}/like', [ReviewLikeController::class, 'toggle'])
         ->name('reviews.like');
-});
 
-Route::resource('genres', GenreController::class)
-    ->middleware('auth');
+    Route::resource('genres', GenreController::class);
+
+    Route::get('/notifications', [NotificationController::class, 'index'])
+        ->name('notifications.index');
+
+    Route::post('/notifications/{id}/read', [NotificationController::class, 'read'])
+        ->name('notifications.read');
+});
 
 Route::get('/books/isbn/{isbn}', [BookController::class, 'searchByIsbn'])
     ->name('books.isbn');
