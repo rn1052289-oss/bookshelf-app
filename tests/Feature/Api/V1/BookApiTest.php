@@ -70,7 +70,8 @@ class BookApiTest extends TestCase
 
         $response->assertStatus(404);
         $response->assertJson([
-            'error' => '書籍が見つかりませんでした。',
+            'error' => 'Not Found',
+            'message' => '書籍が見つかりませんでした。',
         ]);
     }
 
@@ -197,6 +198,11 @@ class BookApiTest extends TestCase
         ]);
 
         $response->assertStatus(422);
+
+        $response->assertJson([
+            'error' => 'Validation Error',
+            'message' => '入力内容に誤りがあります。',
+        ]);
 
         $response->assertJsonValidationErrors([
             'title',
@@ -427,8 +433,9 @@ class BookApiTest extends TestCase
         ]);
 
         $response->assertStatus(401);
-        $response->assertJsonStructure([
-            'message',
+        $response->assertJson([
+            'error' => 'Unauthorized',
+            'message' => '認証が必要です。',
         ]);
 
         $this->assertDatabaseMissing('books', [
@@ -455,8 +462,9 @@ class BookApiTest extends TestCase
         ]);
 
         $response->assertStatus(401);
-        $response->assertJsonStructure([
-            'message',
+        $response->assertJson([
+            'error' => 'Unauthorized',
+            'message' => '認証が必要です。',
         ]);
 
         $this->assertDatabaseHas('books', [
@@ -476,8 +484,9 @@ class BookApiTest extends TestCase
         $response = $this->deleteJson("/api/v1/books/{$book->id}");
 
         $response->assertStatus(401);
-        $response->assertJsonStructure([
-            'message',
+        $response->assertJson([
+            'error' => 'Unauthorized',
+            'message' => '認証が必要です。',
         ]);
 
         $this->assertDatabaseHas('books', [
@@ -507,8 +516,9 @@ class BookApiTest extends TestCase
         ]);
 
         $response->assertStatus(403);
-        $response->assertJsonStructure([
-            'message',
+        $response->assertJson([
+            'error' => 'Forbidden',
+            'message' => 'この操作を行う権限がありません。',
         ]);
 
         $this->assertDatabaseHas('books', [
@@ -531,12 +541,43 @@ class BookApiTest extends TestCase
         $response = $this->deleteJson("/api/v1/books/{$book->id}");
 
         $response->assertStatus(403);
-        $response->assertJsonStructure([
-            'message',
+        $response->assertJson([
+            'error' => 'Forbidden',
+            'message' => 'この操作を行う権限がありません。',
         ]);
 
         $this->assertDatabaseHas('books', [
             'id' => $book->id,
+        ]);
+    }
+
+    public function test_create_book_uses_authenticated_user_even_when_user_id_is_sent()
+    {
+        $authenticatedUser = User::factory()->create();
+        $otherUser = User::factory()->create();
+        $genre = Genre::factory()->create();
+
+        Sanctum::actingAs($authenticatedUser);
+
+        $response = $this->postJson('/api/v1/books', [
+            'user_id' => $otherUser->id,
+            'title' => '認証ユーザー登録テスト',
+            'author' => 'テスト著者',
+            'isbn' => '9784000000080',
+            'genre_ids' => [$genre->id],
+        ]);
+
+        $response->assertStatus(201);
+
+        $this->assertDatabaseHas('books', [
+            'user_id' => $authenticatedUser->id,
+            'title' => '認証ユーザー登録テスト',
+            'isbn' => '9784000000080',
+        ]);
+
+        $this->assertDatabaseMissing('books', [
+            'user_id' => $otherUser->id,
+            'isbn' => '9784000000080',
         ]);
     }
 }
