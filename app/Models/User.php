@@ -14,32 +14,17 @@ class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
     protected $fillable = [
         'name',
         'email',
         'password',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var array<int, string>
-     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
-     */
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
@@ -83,5 +68,83 @@ class User extends Authenticatable
     public function readingPlans(): HasMany
     {
         return $this->hasMany(ReadingPlan::class);
+    }
+
+    /**
+     * ユーザー自身のレビューからマイ読書レポートを集計する。
+     */
+    public function readingReportStats(): array
+    {
+        $reviews = $this->reviews()
+            ->with('book.genres')
+            ->get();
+
+        $summary = [
+            'total_reviews' => $reviews->count(),
+            'books_read' => $reviews->pluck('book_id')->unique()->count(),
+            'average_rating' => $reviews->avg('rating') ?? 0,
+        ];
+
+        $ratingDistribution = collect(range(1, 5))
+            ->map(fn (int $rating): int => $reviews->where('rating', $rating)->count());
+
+        $topRatedBooks = $reviews
+            ->groupBy('book_id')
+            ->map(function ($bookReviews) {
+                $book = $bookReviews->first()->book;
+                $averageRating = $bookReviews->avg('rating');
+
+                return [
+                    'id' => $book->id,
+                    'title' => $book->title,
+                    'author' => $book->author,
+                    'average_rating' => $averageRating,
+                    'review_count' => $bookReviews->count(),
+                    'created_at' => $book->created_at,
+                    'rating' => (int) round($averageRating),
+                ];
+            })
+            ->filter(fn (array $book): bool => $book['average_rating'] >= 4.0)
+            ->sortBy([
+                ['average_rating', 'desc'],
+                ['review_count', 'desc'],
+                ['created_at', 'desc'],
+            ])
+            ->take(5)
+            ->values();
+
+        $genreRatings = $reviews
+            ->flatMap(function ($review) {
+                return $review->book->genres->map(function ($genre) use ($review) {
+                    return [
+                        'id' => $genre->id,
+                        'name' => $genre->name,
+                        'rating' => $review->rating,
+                    ];
+                });
+            })
+            ->groupBy('id')
+            ->map(function ($genreReviews) {
+                return [
+                    'id' => $genreReviews->first()['id'],
+                    'name' => $genreReviews->first()['name'],
+                    'average_rating' => $genreReviews->avg('rating'),
+                    'count' => $genreReviews->count(),
+                ];
+            })
+            ->sortBy([
+                ['average_rating', 'desc'],
+                ['count', 'desc'],
+                ['name', 'asc'],
+            ])
+            ->take(5)
+            ->values();
+
+        return [
+            'summary' => $summary,
+            'rating_distribution' => $ratingDistribution,
+            'top_rated_books' => $topRatedBooks,
+            'genre_ratings' => $genreRatings,
+        ];
     }
 }
