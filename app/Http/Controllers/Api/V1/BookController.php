@@ -88,6 +88,8 @@ class BookController extends Controller
         $genreIds = $validated['genre_ids'];
         unset($validated['genre_ids']);
 
+        $validated['user_id'] = $request->user()->id;
+
         $book = DB::transaction(function () use ($validated, $genreIds) {
             $book = Book::create($validated);
 
@@ -108,6 +110,8 @@ class BookController extends Controller
      */
     public function update(UpdateBookRequest $request, Book $book): JsonResponse
     {
+        $this->authorize('update', $book);
+
         $validated = $request->validated();
 
         $genreIds = $validated['genre_ids'];
@@ -131,6 +135,8 @@ class BookController extends Controller
      */
     public function destroy(Book $book): JsonResponse
     {
+        $this->authorize('delete', $book);
+
         DB::transaction(function () use ($book) {
             $book->delete();
         });
