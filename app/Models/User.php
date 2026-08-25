@@ -82,7 +82,7 @@ class User extends Authenticatable
         $summary = [
             'total_reviews' => $reviews->count(),
             'books_read' => $reviews->pluck('book_id')->unique()->count(),
-            'average_rating' => $reviews->avg('rating') ?? 0,
+            'average_rating' => floatval($reviews->avg('rating') ?? 0),
         ];
 
         $ratingDistribution = collect(range(1, 5))
@@ -92,7 +92,7 @@ class User extends Authenticatable
             ->groupBy('book_id')
             ->map(function ($bookReviews) {
                 $book = $bookReviews->first()->book;
-                $averageRating = $bookReviews->avg('rating');
+                $averageRating = floatval($bookReviews->avg('rating'));
 
                 return [
                     'id' => $book->id,
@@ -128,7 +128,7 @@ class User extends Authenticatable
                 return [
                     'id' => $genreReviews->first()['id'],
                     'name' => $genreReviews->first()['name'],
-                    'average_rating' => $genreReviews->avg('rating'),
+                    'average_rating' => floatval($genreReviews->avg('rating')),
                     'count' => $genreReviews->count(),
                 ];
             })
