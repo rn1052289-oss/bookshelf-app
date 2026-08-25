@@ -37,8 +37,10 @@ class BookCrudTest extends TestCase
             'isbn' => '9784000000000',
         ]);
 
+        $book = Book::where('isbn', '9784000000000')->firstOrFail();
+
         $this->assertDatabaseHas('book_genre', [
-            'book_id' => 1,
+            'book_id' => $book->id,
             'genre_id' => $genre->id,
         ]);
     }
