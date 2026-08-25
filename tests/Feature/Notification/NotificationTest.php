@@ -30,6 +30,46 @@ class NotificationTest extends TestCase
         $response->assertStatus(200);
     }
 
+    public function test_user_can_only_see_own_notifications(): void
+    {
+        $user = User::factory()->create();
+        $otherUser = User::factory()->create();
+
+        $userReadingPlan = ReadingPlan::factory()->create([
+            'user_id' => $user->id,
+        ]);
+
+        $otherReadingPlan = ReadingPlan::factory()->create([
+            'user_id' => $otherUser->id,
+        ]);
+
+        $user->notify(
+            new ReadingPlanReminderNotification(
+                $userReadingPlan,
+                ReadingPlanReminderTiming::ThreeDaysBefore
+            )
+        );
+
+        $otherUser->notify(
+            new ReadingPlanReminderNotification(
+                $otherReadingPlan,
+                ReadingPlanReminderTiming::ThreeDaysBefore
+            )
+        );
+
+        $ownNotification = $user->notifications()->first();
+        $otherNotification = $otherUser->notifications()->first();
+
+        $response = $this->actingAs($user)->get('/notifications');
+
+        $response->assertStatus(200);
+
+        $response->assertViewHas('notifications', function ($notifications) use ($ownNotification, $otherNotification) {
+            return $notifications->contains('id', $ownNotification->id)
+                && ! $notifications->contains('id', $otherNotification->id);
+        });
+    }
+
     public function test_user_can_mark_own_notification_as_read(): void
     {
         $user = User::factory()->create();
