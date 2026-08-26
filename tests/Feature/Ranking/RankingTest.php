@@ -79,4 +79,57 @@ class RankingTest extends TestCase
                 && $rankedBooks->last()->is($lowRatedBook);
         });
     }
+
+    public function test_ranking_orders_same_average_by_review_count()
+    {
+        $bookWithFewerReviews = Book::factory()->create();
+        $bookWithMoreReviews = Book::factory()->create();
+
+        Review::factory()->create([
+            'book_id' => $bookWithFewerReviews->id,
+            'rating' => 5,
+        ]);
+
+        Review::factory()->count(2)->create([
+            'book_id' => $bookWithMoreReviews->id,
+            'rating' => 5,
+        ]);
+
+        $response = $this->get('/ranking');
+
+        $response->assertStatus(200);
+        $response->assertViewHas('rankedBooks', function ($rankedBooks) use ($bookWithMoreReviews, $bookWithFewerReviews) {
+            return $rankedBooks->first()->is($bookWithMoreReviews)
+                && $rankedBooks->last()->is($bookWithFewerReviews);
+        });
+    }
+
+    public function test_ranking_orders_same_average_and_review_count_by_newest_book()
+    {
+        $olderBook = Book::factory()->create([
+            'created_at' => now()->subDay(),
+        ]);
+
+        $newerBook = Book::factory()->create([
+            'created_at' => now(),
+        ]);
+
+        Review::factory()->create([
+            'book_id' => $olderBook->id,
+            'rating' => 5,
+        ]);
+
+        Review::factory()->create([
+            'book_id' => $newerBook->id,
+            'rating' => 5,
+        ]);
+
+        $response = $this->get('/ranking');
+
+        $response->assertStatus(200);
+        $response->assertViewHas('rankedBooks', function ($rankedBooks) use ($olderBook, $newerBook) {
+            return $rankedBooks->first()->is($newerBook)
+                && $rankedBooks->last()->is($olderBook);
+        });
+    }
 }
