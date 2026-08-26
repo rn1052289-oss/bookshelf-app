@@ -265,4 +265,57 @@ class ReadingPlanCrudTest extends TestCase
             'completed_at' => null,
         ]);
     }
+
+    public function test_expired_plan_returns_to_in_progress_when_target_date_is_changed_to_today_or_future()
+    {
+        $user = User::factory()->create();
+
+        $plan = ReadingPlan::factory()->create([
+            'user_id' => $user->id,
+            'target_date' => now()->subDay()->toDateString(),
+            'status' => ReadingPlanStatus::Expired,
+        ]);
+
+        $newTargetDate = now()->toDateString();
+
+        $response = $this->actingAs($user)
+            ->put("/reading-plans/{$plan->id}", [
+                'target_date' => $newTargetDate,
+            ]);
+
+        $response->assertRedirect(route('reading-plans.index'));
+
+        $this->assertDatabaseHas('reading_plans', [
+            'id' => $plan->id,
+            'target_date' => $newTargetDate,
+            'status' => ReadingPlanStatus::InProgress->value,
+        ]);
+    }
+
+    public function test_completed_plan_remains_completed_when_target_date_is_changed()
+    {
+        $user = User::factory()->create();
+
+        $plan = ReadingPlan::factory()->create([
+            'user_id' => $user->id,
+            'target_date' => now()->subDay()->toDateString(),
+            'status' => ReadingPlanStatus::Completed,
+            'completed_at' => now(),
+        ]);
+
+        $newTargetDate = now()->addWeek()->toDateString();
+
+        $response = $this->actingAs($user)
+            ->put("/reading-plans/{$plan->id}", [
+                'target_date' => $newTargetDate,
+            ]);
+
+        $response->assertRedirect(route('reading-plans.index'));
+
+        $this->assertDatabaseHas('reading_plans', [
+            'id' => $plan->id,
+            'target_date' => $newTargetDate,
+            'status' => ReadingPlanStatus::Completed->value,
+        ]);
+    }
 }
