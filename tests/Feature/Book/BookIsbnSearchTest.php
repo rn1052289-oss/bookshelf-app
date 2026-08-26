@@ -60,9 +60,9 @@ class BookIsbnSearchTest extends TestCase
 
         $response = $this->get('/books/isbn/9784000000000');
 
-        $response->assertStatus(503);
+        $response->assertStatus(500);
         $response->assertJson([
-            'error' => 'Google Books APIから書籍情報を取得できませんでした。',
+            'error' => 'API 通信エラーが発生しました。',
         ]);
     }
 }

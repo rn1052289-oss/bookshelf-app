@@ -201,8 +201,8 @@ class BookController extends Controller
             ]);
         } catch (Throwable $e) {
             return response()->json([
-                'error' => 'Google Books APIから書籍情報を取得できませんでした。',
-            ], 503);
+                'error' => 'API 通信エラーが発生しました。',
+            ], 500);
         }
     }
 }
