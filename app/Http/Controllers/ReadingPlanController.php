@@ -9,6 +9,7 @@ use App\Models\Book;
 use App\Models\ReadingPlan;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\View\View;
 
 class ReadingPlanController extends Controller
@@ -91,13 +92,20 @@ class ReadingPlanController extends Controller
     /**
      * 読書計画を更新する。
      */
-    public function update(
-        UpdateReadingPlanRequest $request,
-        ReadingPlan $plan
-    ): RedirectResponse {
+    public function update(UpdateReadingPlanRequest $request, ReadingPlan $plan): RedirectResponse
+    {
         $this->authorize('update', $plan);
 
-        $plan->update($request->validated());
+        $validated = $request->validated();
+
+        if (
+            $plan->status === ReadingPlanStatus::Expired
+            && Carbon::parse($validated['target_date'])->greaterThanOrEqualTo(today())
+        ) {
+            $validated['status'] = ReadingPlanStatus::InProgress;
+        }
+
+        $plan->update($validated);
 
         return redirect()
             ->route('reading-plans.index')
