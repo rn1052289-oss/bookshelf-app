@@ -195,7 +195,9 @@ class BookController extends Controller
                 'author' => isset($volumeInfo['authors'])
                     ? implode(', ', $volumeInfo['authors'])
                     : null,
-                'published_date' => $volumeInfo['publishedDate'] ?? null,
+                'published_date' => $this->normalizePublishedDate(
+                    $volumeInfo['publishedDate'] ?? null
+                ),
                 'description' => $volumeInfo['description'] ?? null,
                 'image_url' => $volumeInfo['imageLinks']['thumbnail'] ?? null,
             ]);
@@ -204,5 +206,21 @@ class BookController extends Controller
                 'error' => 'API 通信エラーが発生しました。',
             ], 500);
         }
+    }
+
+    /**
+     * 完全な年月日で取得できた出版日のみ返す。
+     */
+    private function normalizePublishedDate(mixed $publishedDate): ?string
+    {
+        if (! is_string($publishedDate)) {
+            return null;
+        }
+
+        if (! preg_match('/^\d{4}-\d{2}-\d{2}$/', $publishedDate)) {
+            return null;
+        }
+
+        return $publishedDate;
     }
 }
