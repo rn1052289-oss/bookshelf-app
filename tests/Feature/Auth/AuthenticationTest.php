@@ -31,12 +31,14 @@ class AuthenticationTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $this->post('/login', [
+        $response = $this->post('/login', [
             'email' => $user->email,
             'password' => 'password',
         ]);
 
         $this->assertAuthenticatedAs($user);
+
+        $response->assertRedirect('/');
     }
 
     /**
@@ -65,10 +67,12 @@ class AuthenticationTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $this->actingAs($user)
+        $response = $this->actingAs($user)
             ->post('/logout');
 
         $this->assertGuest();
+
+        $response->assertRedirect('/login');
     }
 
     /**

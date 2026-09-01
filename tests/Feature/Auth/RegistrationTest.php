@@ -44,6 +44,8 @@ class RegistrationTest extends TestCase
             'name' => 'Issue3 Test User',
             'email' => 'issue3-test@example.com',
         ]);
+
+        $response->assertRedirect('/');
     }
 
     /**
