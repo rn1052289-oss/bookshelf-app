@@ -42,6 +42,74 @@ class BookIsbnSearchTest extends TestCase
         ]);
     }
 
+    public function test_missing_google_books_fields_are_returned_as_null()
+    {
+        Http::fake([
+            '*' => Http::response([
+                'items' => [
+                    [
+                        'volumeInfo' => [],
+                    ],
+                ],
+            ], 200),
+        ]);
+
+        $response = $this->get('/books/isbn/9784000000000');
+
+        $response->assertStatus(200);
+        $response->assertJson([
+            'title' => null,
+            'author' => null,
+            'published_date' => null,
+            'description' => null,
+            'image_url' => null,
+        ]);
+    }
+
+    public function test_year_only_published_date_is_returned_as_null()
+    {
+        Http::fake([
+            '*' => Http::response([
+                'items' => [
+                    [
+                        'volumeInfo' => [
+                            'publishedDate' => '2026',
+                        ],
+                    ],
+                ],
+            ], 200),
+        ]);
+
+        $response = $this->get('/books/isbn/9784000000000');
+
+        $response->assertStatus(200);
+        $response->assertJson([
+            'published_date' => null,
+        ]);
+    }
+
+    public function test_year_month_published_date_is_returned_as_null()
+    {
+        Http::fake([
+            '*' => Http::response([
+                'items' => [
+                    [
+                        'volumeInfo' => [
+                            'publishedDate' => '2026-08',
+                        ],
+                    ],
+                ],
+            ], 200),
+        ]);
+
+        $response = $this->get('/books/isbn/9784000000000');
+
+        $response->assertStatus(200);
+        $response->assertJson([
+            'published_date' => null,
+        ]);
+    }
+
     public function test_invalid_isbn_returns_validation_error()
     {
         $response = $this->get('/books/isbn/123');
