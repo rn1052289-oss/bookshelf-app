@@ -104,6 +104,91 @@ class ReadingPlanCrudTest extends TestCase
         ]);
     }
 
+    public function test_user_cannot_create_duplicate_in_progress_plan_for_same_book()
+    {
+        $user = User::factory()->create();
+        $book = Book::factory()->create();
+
+        ReadingPlan::factory()->create([
+            'user_id' => $user->id,
+            'book_id' => $book->id,
+            'status' => ReadingPlanStatus::InProgress,
+        ]);
+
+        $response = $this->actingAs($user)->post('/reading-plans', [
+            'book_id' => $book->id,
+            'target_date' => now()->addWeek()->toDateString(),
+        ]);
+
+        $response->assertSessionHasErrors('book_id');
+
+        $this->assertSame(
+            1,
+            ReadingPlan::where('user_id', $user->id)
+                ->where('book_id', $book->id)
+                ->where('status', ReadingPlanStatus::InProgress->value)
+                ->count()
+        );
+    }
+
+    public function test_user_can_create_new_plan_after_completed_plan()
+    {
+        $user = User::factory()->create();
+        $book = Book::factory()->create();
+
+        ReadingPlan::factory()->create([
+            'user_id' => $user->id,
+            'book_id' => $book->id,
+            'status' => ReadingPlanStatus::Completed,
+            'completed_at' => now(),
+        ]);
+
+        $targetDate = now()->addWeek()->toDateString();
+
+        $response = $this->actingAs($user)->post('/reading-plans', [
+            'book_id' => $book->id,
+            'target_date' => $targetDate,
+        ]);
+
+        $response->assertRedirect(route('reading-plans.index'));
+
+        $this->assertDatabaseHas('reading_plans', [
+            'user_id' => $user->id,
+            'book_id' => $book->id,
+            'target_date' => $targetDate,
+            'status' => ReadingPlanStatus::InProgress->value,
+        ]);
+    }
+
+    public function test_user_can_create_new_plan_after_expired_plan()
+    {
+        $user = User::factory()->create();
+        $book = Book::factory()->create();
+
+        ReadingPlan::factory()->create([
+            'user_id' => $user->id,
+            'book_id' => $book->id,
+            'target_date' => now()->subDay()->toDateString(),
+            'status' => ReadingPlanStatus::Expired,
+        ]);
+
+        $targetDate = now()->addWeek()->toDateString();
+
+        $response = $this->actingAs($user)->post('/reading-plans', [
+            'book_id' => $book->id,
+            'target_date' => $targetDate,
+        ]);
+
+        $response->assertRedirect(route('reading-plans.index'));
+
+        $this->assertDatabaseHas('reading_plans', [
+            'user_id' => $user->id,
+            'book_id' => $book->id,
+            'target_date' => $targetDate,
+            'status' => ReadingPlanStatus::InProgress->value,
+        ]);
+    }
+
     public function test_reading_plan_validation_errors_are_displayed_in_japanese()
     {
         $user = User::factory()->create();
@@ -289,6 +374,39 @@ class ReadingPlanCrudTest extends TestCase
             'id' => $plan->id,
             'target_date' => $newTargetDate,
             'status' => ReadingPlanStatus::InProgress->value,
+        ]);
+    }
+
+    public function test_expired_plan_cannot_return_to_in_progress_when_another_in_progress_plan_exists()
+    {
+        $user = User::factory()->create();
+        $book = Book::factory()->create();
+
+        $expiredPlan = ReadingPlan::factory()->create([
+            'user_id' => $user->id,
+            'book_id' => $book->id,
+            'target_date' => now()->subDay()->toDateString(),
+            'status' => ReadingPlanStatus::Expired,
+        ]);
+
+        ReadingPlan::factory()->create([
+            'user_id' => $user->id,
+            'book_id' => $book->id,
+            'target_date' => now()->addWeek()->toDateString(),
+            'status' => ReadingPlanStatus::InProgress,
+        ]);
+
+        $response = $this->actingAs($user)
+            ->put("/reading-plans/{$expiredPlan->id}", [
+                'target_date' => now()->addMonth()->toDateString(),
+            ]);
+
+        $response->assertSessionHasErrors('target_date');
+
+        $this->assertDatabaseHas('reading_plans', [
+            'id' => $expiredPlan->id,
+            'target_date' => now()->subDay()->toDateString(),
+            'status' => ReadingPlanStatus::Expired->value,
         ]);
     }
 
