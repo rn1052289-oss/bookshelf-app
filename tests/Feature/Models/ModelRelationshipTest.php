@@ -17,55 +17,24 @@ class ModelRelationshipTest extends TestCase
 
     public function test_user_can_get_registered_books(): void
     {
-        $user = User::create([
-            'name' => 'テストユーザー',
-            'email' => 'user@example.com',
-            'password' => 'password',
-        ]);
-
-        $book = $user->books()->create([
-            'title' => 'テスト書籍',
-            'author' => 'テスト著者',
-            'isbn' => '9781234567890',
-        ]);
+        $user = User::factory()->create();
+        $book = Book::factory()->for($user)->create();
 
         $this->assertTrue($user->books->contains($book));
     }
 
     public function test_book_can_get_owner(): void
     {
-        $user = User::create([
-            'name' => 'テストユーザー',
-            'email' => 'user@example.com',
-            'password' => 'password',
-        ]);
-
-        $book = Book::create([
-            'user_id' => $user->id,
-            'title' => 'テスト書籍',
-            'author' => 'テスト著者',
-            'isbn' => '9781234567890',
-        ]);
+        $user = User::factory()->create();
+        $book = Book::factory()->for($user)->create();
 
         $this->assertTrue($book->user->is($user));
     }
 
     public function test_book_can_get_genres(): void
     {
-        $user = User::create([
-            'name' => 'テストユーザー',
-            'email' => 'user@example.com',
-            'password' => 'password',
-        ]);
-
-        $book = Book::create([
-            'user_id' => $user->id,
-            'title' => 'テスト書籍',
-            'author' => 'テスト著者',
-            'isbn' => '9781234567890',
-        ]);
-
-        $genre = Genre::create(['name' => '小説']);
+        $book = Book::factory()->create();
+        $genre = Genre::factory()->create();
 
         $book->genres()->attach($genre);
 
@@ -74,43 +43,16 @@ class ModelRelationshipTest extends TestCase
 
     public function test_book_can_get_reviews(): void
     {
-        $user = User::create([
-            'name' => 'テストユーザー',
-            'email' => 'user@example.com',
-            'password' => 'password',
-        ]);
-
-        $book = Book::create([
-            'user_id' => $user->id,
-            'title' => 'テスト書籍',
-            'author' => 'テスト著者',
-            'isbn' => '9781234567890',
-        ]);
-
-        $review = Review::create([
-            'user_id' => $user->id,
-            'book_id' => $book->id,
-            'rating' => 5,
-            'comment' => 'テストレビュー',
-        ]);
+        $book = Book::factory()->create();
+        $review = Review::factory()->for($book)->create();
 
         $this->assertTrue($book->reviews->contains($review));
     }
 
     public function test_user_can_get_favorite_books(): void
     {
-        $user = User::create([
-            'name' => 'テストユーザー',
-            'email' => 'user@example.com',
-            'password' => 'password',
-        ]);
-
-        $book = Book::create([
-            'user_id' => $user->id,
-            'title' => 'テスト書籍',
-            'author' => 'テスト著者',
-            'isbn' => '9781234567890',
-        ]);
+        $user = User::factory()->create();
+        $book = Book::factory()->create();
 
         $user->favoriteBooks()->attach($book);
 
@@ -119,31 +61,8 @@ class ModelRelationshipTest extends TestCase
 
     public function test_review_can_get_users_who_liked_it(): void
     {
-        $reviewer = User::create([
-            'name' => 'レビュー投稿者',
-            'email' => 'reviewer@example.com',
-            'password' => 'password',
-        ]);
-
-        $likingUser = User::create([
-            'name' => 'いいねユーザー',
-            'email' => 'liker@example.com',
-            'password' => 'password',
-        ]);
-
-        $book = Book::create([
-            'user_id' => $reviewer->id,
-            'title' => 'テスト書籍',
-            'author' => 'テスト著者',
-            'isbn' => '9781234567890',
-        ]);
-
-        $review = Review::create([
-            'user_id' => $reviewer->id,
-            'book_id' => $book->id,
-            'rating' => 5,
-            'comment' => 'テストレビュー',
-        ]);
+        $review = Review::factory()->create();
+        $likingUser = User::factory()->create();
 
         $review->likedByUsers()->attach($likingUser);
 
@@ -155,7 +74,10 @@ class ModelRelationshipTest extends TestCase
         $user = User::factory()->create();
         $book = Book::factory()->create();
 
-        $readingPlan = ReadingPlan::factory()->for($user)->for($book)->create();
+        $readingPlan = ReadingPlan::factory()
+            ->for($user)
+            ->for($book)
+            ->create();
 
         $this->assertTrue($readingPlan->user->is($user));
         $this->assertTrue($readingPlan->book->is($book));
@@ -167,14 +89,23 @@ class ModelRelationshipTest extends TestCase
             'status' => ReadingPlanStatus::Completed,
         ]);
 
-        $this->assertInstanceOf(ReadingPlanStatus::class, $readingPlan->status);
-        $this->assertSame(ReadingPlanStatus::Completed, $readingPlan->status);
+        $this->assertInstanceOf(
+            ReadingPlanStatus::class,
+            $readingPlan->status
+        );
+        $this->assertSame(
+            ReadingPlanStatus::Completed,
+            $readingPlan->status
+        );
     }
 
     public function test_book_can_get_reading_plans(): void
     {
         $book = Book::factory()->create();
-        $readingPlan = ReadingPlan::factory()->create(['book_id' => $book->id]);
+
+        $readingPlan = ReadingPlan::factory()
+            ->for($book)
+            ->create();
 
         $this->assertTrue($book->readingPlans->contains($readingPlan));
     }
