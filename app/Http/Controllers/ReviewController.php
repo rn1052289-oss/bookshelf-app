@@ -6,13 +6,15 @@ use App\Http\Requests\StoreReviewRequest;
 use App\Http\Requests\UpdateReviewRequest;
 use App\Models\Book;
 use App\Models\Review;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\View\View;
 
 class ReviewController extends Controller
 {
     /**
      * レビューを投稿する。
      */
-    public function store(StoreReviewRequest $request, Book $book)
+    public function store(StoreReviewRequest $request, Book $book): RedirectResponse
     {
         $validated = $request->validated();
 
@@ -29,7 +31,7 @@ class ReviewController extends Controller
     /**
      * レビュー編集画面を表示する。
      */
-    public function edit(Review $review)
+    public function edit(Review $review): View
     {
         $this->authorize('update', $review);
 
@@ -39,7 +41,7 @@ class ReviewController extends Controller
     /**
      * レビューを更新する。
      */
-    public function update(UpdateReviewRequest $request, Review $review)
+    public function update(UpdateReviewRequest $request, Review $review): RedirectResponse
     {
         $this->authorize('update', $review);
 
@@ -52,7 +54,7 @@ class ReviewController extends Controller
     /**
      * レビューを削除する。
      */
-    public function destroy(Review $review)
+    public function destroy(Review $review): RedirectResponse
     {
         $this->authorize('delete', $review);
 
