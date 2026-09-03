@@ -16,28 +16,21 @@ class GenreCrudTest extends TestCase
     {
         $genre = Genre::factory()->create();
 
-        $this->get('/genres')
-            ->assertRedirect('/login');
-
-        $this->get('/genres/create')
-            ->assertRedirect('/login');
+        $this->get('/genres')->assertRedirect('/login');
+        $this->get('/genres/create')->assertRedirect('/login');
 
         $this->post('/genres', [
             'name' => '小説',
         ])->assertRedirect('/login');
 
-        $this->get("/genres/{$genre->id}")
-            ->assertRedirect('/login');
-
-        $this->get("/genres/{$genre->id}/edit")
-            ->assertRedirect('/login');
+        $this->get("/genres/{$genre->id}")->assertRedirect('/login');
+        $this->get("/genres/{$genre->id}/edit")->assertRedirect('/login');
 
         $this->put("/genres/{$genre->id}", [
             'name' => '文学',
         ])->assertRedirect('/login');
 
-        $this->delete("/genres/{$genre->id}")
-            ->assertRedirect('/login');
+        $this->delete("/genres/{$genre->id}")->assertRedirect('/login');
     }
 
     public function test_genre_list_displays_book_count()
@@ -53,6 +46,12 @@ class GenreCrudTest extends TestCase
         $response = $this->actingAs($user)->get('/genres');
 
         $response->assertStatus(200);
+        $response->assertViewIs('genres.index');
+        $response->assertViewHas('genres', function ($genres) use ($genre) {
+            $viewGenre = $genres->firstWhere('id', $genre->id);
+
+            return $viewGenre !== null && $viewGenre->books_count === 2;
+        });
         $response->assertSee('小説');
         $response->assertSee('2冊');
     }
@@ -65,8 +64,7 @@ class GenreCrudTest extends TestCase
 
         $genre->books()->attach($books);
 
-        $response = $this->actingAs($user)
-            ->get("/genres/{$genre->id}");
+        $response = $this->actingAs($user)->get("/genres/{$genre->id}");
 
         $response->assertStatus(200);
         $response->assertViewHas('books', function ($books) {
@@ -84,7 +82,7 @@ class GenreCrudTest extends TestCase
             'name' => '小説',
         ]);
 
-        $response->assertRedirect('/genres');
+        $response->assertRedirect(route('genres.index'));
         $response->assertSessionHas('success', 'ジャンルを登録しました。');
 
         $this->assertDatabaseHas('genres', [
@@ -107,7 +105,7 @@ class GenreCrudTest extends TestCase
             ]);
 
         $response->assertRedirect('/genres/create');
-        $response->assertSessionHasErrors('name');
+        $response->assertSessionHasErrors(['name' => 'このジャンル名はすでに登録されています。']);
 
         $this->assertDatabaseCount('genres', 1);
     }
@@ -119,12 +117,11 @@ class GenreCrudTest extends TestCase
             'name' => '小説',
         ]);
 
-        $response = $this->actingAs($user)
-            ->put("/genres/{$genre->id}", [
-                'name' => '文学',
-            ]);
+        $response = $this->actingAs($user)->put("/genres/{$genre->id}", [
+            'name' => '文学',
+        ]);
 
-        $response->assertRedirect('/genres');
+        $response->assertRedirect(route('genres.index'));
         $response->assertSessionHas('success', 'ジャンルを更新しました。');
 
         $this->assertDatabaseHas('genres', [
@@ -141,14 +138,10 @@ class GenreCrudTest extends TestCase
 
         $genre->books()->attach($book);
 
-        $response = $this->actingAs($user)
-            ->delete("/genres/{$genre->id}");
+        $response = $this->actingAs($user)->delete("/genres/{$genre->id}");
 
-        $response->assertRedirect('/genres');
-        $response->assertSessionHas(
-            'error',
-            'このジャンルには書籍が紐付いているため削除できません。'
-        );
+        $response->assertRedirect(route('genres.index'));
+        $response->assertSessionHas('error', 'このジャンルには書籍が紐付いているため削除できません。');
 
         $this->assertDatabaseHas('genres', [
             'id' => $genre->id,
@@ -160,14 +153,183 @@ class GenreCrudTest extends TestCase
         $user = User::factory()->create();
         $genre = Genre::factory()->create();
 
-        $response = $this->actingAs($user)
-            ->delete("/genres/{$genre->id}");
+        $response = $this->actingAs($user)->delete("/genres/{$genre->id}");
 
-        $response->assertRedirect('/genres');
+        $response->assertRedirect(route('genres.index'));
         $response->assertSessionHas('success', 'ジャンルを削除しました。');
 
         $this->assertDatabaseMissing('genres', [
             'id' => $genre->id,
         ]);
+    }
+
+    public function test_authenticated_user_can_access_genre_create_page()
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->get('/genres/create');
+
+        $response->assertStatus(200);
+        $response->assertViewIs('genres.create');
+    }
+
+    public function test_authenticated_user_can_access_genre_edit_page()
+    {
+        $user = User::factory()->create();
+        $genre = Genre::factory()->create();
+
+        $response = $this->actingAs($user)->get("/genres/{$genre->id}/edit");
+
+        $response->assertStatus(200);
+        $response->assertViewIs('genres.edit');
+        $response->assertViewHas('genre', function ($viewGenre) use ($genre) {
+            return $viewGenre->is($genre);
+        });
+    }
+
+    public function test_genre_name_is_required_when_creating_genre()
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post('/genres', [
+            'name' => '',
+        ]);
+
+        $response->assertSessionHasErrors(['name' => 'ジャンル名は必須です。']);
+
+        $this->assertDatabaseCount('genres', 0);
+    }
+
+    public function test_genre_name_cannot_exceed_255_characters_when_creating_genre()
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post('/genres', [
+            'name' => str_repeat('a', 256),
+        ]);
+
+        $response->assertSessionHasErrors(['name' => 'ジャンル名は255文字以内で入力してください。']);
+
+        $this->assertDatabaseCount('genres', 0);
+    }
+
+    public function test_genre_name_is_required_when_updating_genre()
+    {
+        $user = User::factory()->create();
+        $genre = Genre::factory()->create([
+            'name' => '小説',
+        ]);
+
+        $response = $this->actingAs($user)->put("/genres/{$genre->id}", [
+            'name' => '',
+        ]);
+
+        $response->assertSessionHasErrors(['name' => 'ジャンル名は必須です。']);
+
+        $this->assertDatabaseHas('genres', [
+            'id' => $genre->id,
+            'name' => '小説',
+        ]);
+    }
+
+    public function test_genre_name_cannot_exceed_255_characters_when_updating_genre()
+    {
+        $user = User::factory()->create();
+        $genre = Genre::factory()->create([
+            'name' => '小説',
+        ]);
+
+        $response = $this->actingAs($user)->put("/genres/{$genre->id}", [
+            'name' => str_repeat('a', 256),
+        ]);
+
+        $response->assertSessionHasErrors(['name' => 'ジャンル名は255文字以内で入力してください。']);
+
+        $this->assertDatabaseHas('genres', [
+            'id' => $genre->id,
+            'name' => '小説',
+        ]);
+    }
+
+    public function test_cannot_update_genre_with_another_genres_name()
+    {
+        $user = User::factory()->create();
+        $genre = Genre::factory()->create([
+            'name' => '小説',
+        ]);
+
+        Genre::factory()->create([
+            'name' => '文学',
+        ]);
+
+        $response = $this->actingAs($user)->put("/genres/{$genre->id}", [
+            'name' => '文学',
+        ]);
+
+        $response->assertSessionHasErrors(['name' => 'このジャンル名はすでに登録されています。']);
+
+        $this->assertDatabaseHas('genres', [
+            'id' => $genre->id,
+            'name' => '小説',
+        ]);
+    }
+
+    public function test_can_update_genre_with_same_name()
+    {
+        $user = User::factory()->create();
+        $genre = Genre::factory()->create([
+            'name' => '小説',
+        ]);
+
+        $response = $this->actingAs($user)->put("/genres/{$genre->id}", [
+            'name' => '小説',
+        ]);
+
+        $response->assertSessionDoesntHaveErrors('name');
+        $response->assertRedirect(route('genres.index'));
+        $response->assertSessionHas('success', 'ジャンルを更新しました。');
+
+        $this->assertDatabaseHas('genres', [
+            'id' => $genre->id,
+            'name' => '小説',
+        ]);
+    }
+
+    public function test_nonexistent_genre_returns_404_on_detail_page()
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->get('/genres/999999');
+
+        $response->assertStatus(404);
+    }
+
+    public function test_nonexistent_genre_returns_404_on_edit_page()
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->get('/genres/999999/edit');
+
+        $response->assertStatus(404);
+    }
+
+    public function test_nonexistent_genre_returns_404_when_updating()
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->put('/genres/999999', [
+            'name' => '文学',
+        ]);
+
+        $response->assertStatus(404);
+    }
+
+    public function test_nonexistent_genre_returns_404_when_deleting()
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->delete('/genres/999999');
+
+        $response->assertStatus(404);
     }
 }
