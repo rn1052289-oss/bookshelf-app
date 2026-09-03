@@ -83,9 +83,7 @@ class BookIsbnSearchTest extends TestCase
         $response = $this->get('/books/isbn/9784000000000');
 
         $response->assertStatus(200);
-        $response->assertJson([
-            'published_date' => null,
-        ]);
+        $response->assertJson(['published_date' => null]);
     }
 
     public function test_year_month_published_date_is_returned_as_null()
@@ -105,9 +103,7 @@ class BookIsbnSearchTest extends TestCase
         $response = $this->get('/books/isbn/9784000000000');
 
         $response->assertStatus(200);
-        $response->assertJson([
-            'published_date' => null,
-        ]);
+        $response->assertJson(['published_date' => null]);
     }
 
     public function test_invalid_isbn_returns_validation_error()
@@ -115,9 +111,7 @@ class BookIsbnSearchTest extends TestCase
         $response = $this->get('/books/isbn/123');
 
         $response->assertStatus(422);
-        $response->assertJson([
-            'error' => 'ISBNは13桁の数字で入力してください。',
-        ]);
+        $response->assertJson(['error' => 'ISBNは13桁の数字で入力してください。']);
     }
 
     public function test_google_books_api_failure_returns_error()
@@ -129,8 +123,16 @@ class BookIsbnSearchTest extends TestCase
         $response = $this->get('/books/isbn/9784000000000');
 
         $response->assertStatus(500);
-        $response->assertJson([
-            'error' => 'API 通信エラーが発生しました。',
-        ]);
+        $response->assertJson(['error' => 'API 通信エラーが発生しました。']);
+    }
+
+    public function test_returns_404_when_google_books_has_no_results()
+    {
+        Http::fake(['*' => Http::response(['items' => []], 200)]);
+
+        $response = $this->get('/books/isbn/9784000000000');
+
+        $response->assertStatus(404);
+        $response->assertJson(['error' => '書籍情報が見つかりませんでした。']);
     }
 }

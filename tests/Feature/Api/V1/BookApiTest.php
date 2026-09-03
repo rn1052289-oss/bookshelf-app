@@ -35,15 +35,9 @@ class BookApiTest extends TestCase
 
     public function test_can_get_book_detail_with_genres_and_reviews()
     {
-        $user = User::factory()->create([
-            'name' => 'テストユーザー',
-        ]);
-
+        $user = User::factory()->create(['name' => 'テストユーザー']);
         $book = Book::factory()->create();
-
-        $genre = Genre::factory()->create([
-            'name' => '小説',
-        ]);
+        $genre = Genre::factory()->create(['name' => '小説']);
 
         $book->genres()->attach($genre->id);
 
@@ -96,34 +90,17 @@ class BookApiTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertJsonCount(2, 'data');
-        $response->assertJsonFragment([
-            'title' => '吾輩は猫である',
-        ]);
-        $response->assertJsonFragment([
-            'title' => '坊っちゃん',
-        ]);
-        $response->assertJsonMissing([
-            'title' => '銀河鉄道の夜',
-        ]);
+        $response->assertJsonFragment(['title' => '吾輩は猫である']);
+        $response->assertJsonFragment(['title' => '坊っちゃん']);
+        $response->assertJsonMissing(['title' => '銀河鉄道の夜']);
     }
 
     public function test_can_filter_books_by_genre()
     {
-        $novel = Genre::factory()->create([
-            'name' => '小説',
-        ]);
-
-        $business = Genre::factory()->create([
-            'name' => 'ビジネス',
-        ]);
-
-        $novelBook = Book::factory()->create([
-            'title' => '小説の本',
-        ]);
-
-        $businessBook = Book::factory()->create([
-            'title' => 'ビジネスの本',
-        ]);
+        $novel = Genre::factory()->create(['name' => '小説']);
+        $business = Genre::factory()->create(['name' => 'ビジネス']);
+        $novelBook = Book::factory()->create(['title' => '小説の本']);
+        $businessBook = Book::factory()->create(['title' => 'ビジネスの本']);
 
         $novelBook->genres()->attach($novel->id);
         $businessBook->genres()->attach($business->id);
@@ -132,12 +109,8 @@ class BookApiTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertJsonCount(1, 'data');
-        $response->assertJsonFragment([
-            'title' => '小説の本',
-        ]);
-        $response->assertJsonMissing([
-            'title' => 'ビジネスの本',
-        ]);
+        $response->assertJsonFragment(['title' => '小説の本']);
+        $response->assertJsonMissing(['title' => 'ビジネスの本']);
     }
 
     public function test_books_are_paginated()
@@ -198,38 +171,15 @@ class BookApiTest extends TestCase
         ]);
 
         $response->assertStatus(422);
-
         $response->assertJson([
             'error' => 'Validation Error',
             'message' => '入力内容に誤りがあります。',
         ]);
-
-        $response->assertJsonValidationErrors([
-            'title',
-            'author',
-            'isbn',
-            'genre_ids',
-        ]);
-
-        $response->assertJsonPath(
-            'errors.title.0',
-            'タイトルは必須です。'
-        );
-
-        $response->assertJsonPath(
-            'errors.author.0',
-            '著者名は必須です。'
-        );
-
-        $response->assertJsonPath(
-            'errors.isbn.0',
-            'ISBNは必須です。'
-        );
-
-        $response->assertJsonPath(
-            'errors.genre_ids.0',
-            'ジャンルを1件以上選択してください。'
-        );
+        $response->assertJsonValidationErrors(['title', 'author', 'isbn', 'genre_ids']);
+        $response->assertJsonPath('errors.title.0', 'タイトルは必須です。');
+        $response->assertJsonPath('errors.author.0', '著者名は必須です。');
+        $response->assertJsonPath('errors.isbn.0', 'ISBNは必須です。');
+        $response->assertJsonPath('errors.genre_ids.0', 'ジャンルを1件以上選択してください。');
     }
 
     public function test_can_update_book_with_same_isbn()
@@ -238,13 +188,8 @@ class BookApiTest extends TestCase
 
         Sanctum::actingAs($user);
 
-        $oldGenre = Genre::factory()->create([
-            'name' => '小説',
-        ]);
-
-        $newGenre = Genre::factory()->create([
-            'name' => 'ビジネス',
-        ]);
+        $oldGenre = Genre::factory()->create(['name' => '小説']);
+        $newGenre = Genre::factory()->create(['name' => 'ビジネス']);
 
         $book = Book::factory()->create([
             'user_id' => $user->id,
@@ -294,10 +239,7 @@ class BookApiTest extends TestCase
 
         Sanctum::actingAs($user);
 
-        $book = Book::factory()->create([
-            'user_id' => $user->id,
-        ]);
-
+        $book = Book::factory()->create(['user_id' => $user->id]);
         $genre = Genre::factory()->create();
 
         $book->genres()->attach($genre->id);
@@ -314,36 +256,17 @@ class BookApiTest extends TestCase
 
         $response->assertStatus(204);
 
-        $this->assertDatabaseMissing('books', [
-            'id' => $book->id,
-        ]);
-
-        $this->assertDatabaseMissing('book_genre', [
-            'book_id' => $book->id,
-        ]);
-
-        $this->assertDatabaseMissing('favorites', [
-            'book_id' => $book->id,
-        ]);
-
-        $this->assertDatabaseMissing('reviews', [
-            'book_id' => $book->id,
-        ]);
-
-        $this->assertDatabaseMissing('review_likes', [
-            'review_id' => $review->id,
-        ]);
+        $this->assertDatabaseMissing('books', ['id' => $book->id]);
+        $this->assertDatabaseMissing('book_genre', ['book_id' => $book->id]);
+        $this->assertDatabaseMissing('favorites', ['book_id' => $book->id]);
+        $this->assertDatabaseMissing('reviews', ['book_id' => $book->id]);
+        $this->assertDatabaseMissing('review_likes', ['review_id' => $review->id]);
     }
 
     public function test_book_resource_format()
     {
-        $book = Book::factory()->create([
-            'title' => 'Resourceテスト書籍',
-        ]);
-
-        $genre = Genre::factory()->create([
-            'name' => '小説',
-        ]);
+        $book = Book::factory()->create(['title' => 'Resourceテスト書籍']);
+        $genre = Genre::factory()->create(['name' => '小説']);
 
         $book->genres()->attach($genre->id);
 
@@ -360,7 +283,6 @@ class BookApiTest extends TestCase
         $response = $this->getJson('/api/v1/books');
 
         $response->assertStatus(200);
-
         $response->assertJsonStructure([
             'data' => [
                 '*' => [
@@ -438,9 +360,7 @@ class BookApiTest extends TestCase
             'message' => '認証が必要です。',
         ]);
 
-        $this->assertDatabaseMissing('books', [
-            'isbn' => '9784000000040',
-        ]);
+        $this->assertDatabaseMissing('books', ['isbn' => '9784000000040']);
     }
 
     public function test_guest_cannot_update_book()
@@ -476,10 +396,7 @@ class BookApiTest extends TestCase
     public function test_guest_cannot_delete_book()
     {
         $user = User::factory()->create();
-
-        $book = Book::factory()->create([
-            'user_id' => $user->id,
-        ]);
+        $book = Book::factory()->create(['user_id' => $user->id]);
 
         $response = $this->deleteJson("/api/v1/books/{$book->id}");
 
@@ -489,9 +406,7 @@ class BookApiTest extends TestCase
             'message' => '認証が必要です。',
         ]);
 
-        $this->assertDatabaseHas('books', [
-            'id' => $book->id,
-        ]);
+        $this->assertDatabaseHas('books', ['id' => $book->id]);
     }
 
     public function test_other_user_cannot_update_book()
@@ -532,9 +447,7 @@ class BookApiTest extends TestCase
         $owner = User::factory()->create();
         $otherUser = User::factory()->create();
 
-        $book = Book::factory()->create([
-            'user_id' => $owner->id,
-        ]);
+        $book = Book::factory()->create(['user_id' => $owner->id]);
 
         Sanctum::actingAs($otherUser);
 
@@ -546,9 +459,7 @@ class BookApiTest extends TestCase
             'message' => 'この操作を行う権限がありません。',
         ]);
 
-        $this->assertDatabaseHas('books', [
-            'id' => $book->id,
-        ]);
+        $this->assertDatabaseHas('books', ['id' => $book->id]);
     }
 
     public function test_create_book_uses_authenticated_user_even_when_user_id_is_sent()
@@ -579,5 +490,13 @@ class BookApiTest extends TestCase
             'user_id' => $otherUser->id,
             'isbn' => '9784000000080',
         ]);
+    }
+
+    public function test_returns_404_when_filtering_by_nonexistent_genre()
+    {
+        $response = $this->getJson('/api/v1/books?genre=999999');
+
+        $response->assertStatus(404);
+        $response->assertJson(['error' => 'ジャンルが見つかりませんでした。']);
     }
 }

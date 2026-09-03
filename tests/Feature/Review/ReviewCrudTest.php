@@ -36,6 +36,9 @@ class ReviewCrudTest extends TestCase
             'comment' => 'とても面白い本でした。',
         ]);
 
+        $response->assertRedirect(route('books.show', $book));
+        $response->assertSessionHas('success', 'レビューを投稿しました。');
+
         $this->assertDatabaseHas('reviews', [
             'user_id' => $user->id,
             'book_id' => $book->id,
@@ -54,7 +57,7 @@ class ReviewCrudTest extends TestCase
             'comment' => 'レビューコメントです。',
         ]);
 
-        $response->assertSessionHasErrors('rating');
+        $response->assertSessionHasErrors(['rating' => '評価は1から5の間で選択してください。']);
 
         $this->assertDatabaseCount('reviews', 0);
     }
@@ -75,6 +78,9 @@ class ReviewCrudTest extends TestCase
             'rating' => 5,
             'comment' => '更新後のコメントです。',
         ]);
+
+        $response->assertRedirect(route('books.show', $book));
+        $response->assertSessionHas('success', 'レビューを更新しました。');
 
         $this->assertDatabaseHas('reviews', [
             'id' => $review->id,
@@ -125,8 +131,7 @@ class ReviewCrudTest extends TestCase
             'comment' => '削除前のコメントです。',
         ]);
 
-        $response = $this->actingAs($otherUser)
-            ->delete("/reviews/{$review->id}");
+        $response = $this->actingAs($otherUser)->delete("/reviews/{$review->id}");
 
         $response->assertStatus(403);
 
@@ -151,8 +156,10 @@ class ReviewCrudTest extends TestCase
             'comment' => '削除するレビューです。',
         ]);
 
-        $response = $this->actingAs($user)
-            ->delete("/reviews/{$review->id}");
+        $response = $this->actingAs($user)->delete("/reviews/{$review->id}");
+
+        $response->assertRedirect(route('books.show', $book));
+        $response->assertSessionHas('success', 'レビューを削除しました。');
 
         $this->assertDatabaseMissing('reviews', [
             'id' => $review->id,
@@ -179,8 +186,7 @@ class ReviewCrudTest extends TestCase
             'review_id' => $review->id,
         ]);
 
-        $this->actingAs($author)
-            ->delete("/reviews/{$review->id}");
+        $this->actingAs($author)->delete("/reviews/{$review->id}");
 
         $this->assertDatabaseMissing('review_likes', [
             'user_id' => $likedUser->id,
@@ -201,8 +207,7 @@ class ReviewCrudTest extends TestCase
             'comment' => '編集前のコメントです。',
         ]);
 
-        $response = $this->actingAs($otherUser)
-            ->get("/reviews/{$review->id}/edit");
+        $response = $this->actingAs($otherUser)->get("/reviews/{$review->id}/edit");
 
         $response->assertStatus(403);
     }
@@ -217,9 +222,7 @@ class ReviewCrudTest extends TestCase
             'comment' => '',
         ]);
 
-        $response->assertSessionHasErrors([
-            'comment' => 'コメントは必須です。',
-        ]);
+        $response->assertSessionHasErrors(['comment' => 'コメントは必須です。']);
 
         $this->assertDatabaseCount('reviews', 0);
     }
@@ -234,10 +237,168 @@ class ReviewCrudTest extends TestCase
             'comment' => str_repeat('あ', 1001),
         ]);
 
-        $response->assertSessionHasErrors([
-            'comment' => 'コメントは1000文字以内で入力してください。',
-        ]);
+        $response->assertSessionHasErrors(['comment' => 'コメントは1000文字以内で入力してください。']);
 
         $this->assertDatabaseCount('reviews', 0);
+    }
+
+    public function test_author_can_access_review_edit_page()
+    {
+        $user = User::factory()->create();
+        $book = Book::factory()->create();
+
+        $review = Review::create([
+            'user_id' => $user->id,
+            'book_id' => $book->id,
+            'rating' => 4,
+            'comment' => '編集前のコメントです。',
+        ]);
+
+        $response = $this->actingAs($user)->get("/reviews/{$review->id}/edit");
+
+        $response->assertStatus(200);
+        $response->assertViewIs('reviews.edit');
+        $response->assertViewHas('review', function ($viewReview) use ($review) {
+            return $viewReview->is($review);
+        });
+    }
+
+    public function test_guest_cannot_access_review_edit_page()
+    {
+        $review = Review::factory()->create();
+
+        $response = $this->get("/reviews/{$review->id}/edit");
+
+        $response->assertRedirect('/login');
+    }
+
+    public function test_guest_cannot_update_review()
+    {
+        $review = Review::factory()->create([
+            'rating' => 3,
+            'comment' => '更新前のコメントです。',
+        ]);
+
+        $response = $this->put("/reviews/{$review->id}", [
+            'rating' => 5,
+            'comment' => '更新後のコメントです。',
+        ]);
+
+        $response->assertRedirect('/login');
+
+        $this->assertDatabaseHas('reviews', [
+            'id' => $review->id,
+            'rating' => 3,
+            'comment' => '更新前のコメントです。',
+        ]);
+    }
+
+    public function test_guest_cannot_delete_review()
+    {
+        $review = Review::factory()->create();
+
+        $response = $this->delete("/reviews/{$review->id}");
+
+        $response->assertRedirect('/login');
+
+        $this->assertDatabaseHas('reviews', [
+            'id' => $review->id,
+        ]);
+    }
+
+    public function test_nonexistent_review_returns_404_on_edit_page()
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->get('/reviews/999999/edit');
+
+        $response->assertStatus(404);
+    }
+
+    public function test_nonexistent_review_returns_404_when_updating()
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->put('/reviews/999999', [
+            'rating' => 5,
+            'comment' => '更新後のコメントです。',
+        ]);
+
+        $response->assertStatus(404);
+    }
+
+    public function test_nonexistent_review_returns_404_when_deleting()
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->delete('/reviews/999999');
+
+        $response->assertStatus(404);
+    }
+
+    public function test_invalid_rating_is_rejected_when_updating_review()
+    {
+        $user = User::factory()->create();
+        $review = Review::factory()->for($user)->create([
+            'rating' => 3,
+            'comment' => '更新前のコメントです。',
+        ]);
+
+        $response = $this->actingAs($user)->put("/reviews/{$review->id}", [
+            'rating' => 6,
+            'comment' => '更新後のコメントです。',
+        ]);
+
+        $response->assertSessionHasErrors(['rating' => '評価は1から5の間で選択してください。']);
+
+        $this->assertDatabaseHas('reviews', [
+            'id' => $review->id,
+            'rating' => 3,
+            'comment' => '更新前のコメントです。',
+        ]);
+    }
+
+    public function test_comment_is_required_when_updating_review()
+    {
+        $user = User::factory()->create();
+        $review = Review::factory()->for($user)->create([
+            'rating' => 3,
+            'comment' => '更新前のコメントです。',
+        ]);
+
+        $response = $this->actingAs($user)->put("/reviews/{$review->id}", [
+            'rating' => 5,
+            'comment' => '',
+        ]);
+
+        $response->assertSessionHasErrors(['comment' => 'コメントは必須です。']);
+
+        $this->assertDatabaseHas('reviews', [
+            'id' => $review->id,
+            'rating' => 3,
+            'comment' => '更新前のコメントです。',
+        ]);
+    }
+
+    public function test_comment_cannot_exceed_1000_characters_when_updating_review()
+    {
+        $user = User::factory()->create();
+        $review = Review::factory()->for($user)->create([
+            'rating' => 3,
+            'comment' => '更新前のコメントです。',
+        ]);
+
+        $response = $this->actingAs($user)->put("/reviews/{$review->id}", [
+            'rating' => 5,
+            'comment' => str_repeat('あ', 1001),
+        ]);
+
+        $response->assertSessionHasErrors(['comment' => 'コメントは1000文字以内で入力してください。']);
+
+        $this->assertDatabaseHas('reviews', [
+            'id' => $review->id,
+            'rating' => 3,
+            'comment' => '更新前のコメントです。',
+        ]);
     }
 }

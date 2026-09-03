@@ -65,9 +65,7 @@ class ModelRelationshipTest extends TestCase
             'isbn' => '9781234567890',
         ]);
 
-        $genre = Genre::create([
-            'name' => '小説',
-        ]);
+        $genre = Genre::create(['name' => '小説']);
 
         $book->genres()->attach($genre);
 
@@ -157,10 +155,7 @@ class ModelRelationshipTest extends TestCase
         $user = User::factory()->create();
         $book = Book::factory()->create();
 
-        $readingPlan = ReadingPlan::factory()
-            ->for($user)
-            ->for($book)
-            ->create();
+        $readingPlan = ReadingPlan::factory()->for($user)->for($book)->create();
 
         $this->assertTrue($readingPlan->user->is($user));
         $this->assertTrue($readingPlan->book->is($book));
@@ -172,14 +167,15 @@ class ModelRelationshipTest extends TestCase
             'status' => ReadingPlanStatus::Completed,
         ]);
 
-        $this->assertInstanceOf(
-            ReadingPlanStatus::class,
-            $readingPlan->status
-        );
+        $this->assertInstanceOf(ReadingPlanStatus::class, $readingPlan->status);
+        $this->assertSame(ReadingPlanStatus::Completed, $readingPlan->status);
+    }
 
-        $this->assertSame(
-            ReadingPlanStatus::Completed,
-            $readingPlan->status
-        );
+    public function test_book_can_get_reading_plans(): void
+    {
+        $book = Book::factory()->create();
+        $readingPlan = ReadingPlan::factory()->create(['book_id' => $book->id]);
+
+        $this->assertTrue($book->readingPlans->contains($readingPlan));
     }
 }

@@ -25,8 +25,7 @@ class ReviewLikeTest extends TestCase
             'comment' => 'テストレビュー',
         ]);
 
-        $response = $this
-            ->actingAs($user)
+        $response = $this->actingAs($user)
             ->from("/books/{$book->id}")
             ->post("/reviews/{$review->id}/like");
 
@@ -53,8 +52,7 @@ class ReviewLikeTest extends TestCase
 
         $user->likedReviews()->attach($review->id);
 
-        $response = $this
-            ->actingAs($user)
+        $response = $this->actingAs($user)
             ->from("/books/{$book->id}")
             ->post("/reviews/{$review->id}/like");
 
@@ -79,14 +77,9 @@ class ReviewLikeTest extends TestCase
             'comment' => 'テストレビュー',
         ]);
 
-        $this->actingAs($user)
-            ->post("/reviews/{$review->id}/like");
-
-        $this->actingAs($user)
-            ->post("/reviews/{$review->id}/like");
-
-        $this->actingAs($user)
-            ->post("/reviews/{$review->id}/like");
+        $this->actingAs($user)->post("/reviews/{$review->id}/like");
+        $this->actingAs($user)->post("/reviews/{$review->id}/like");
+        $this->actingAs($user)->post("/reviews/{$review->id}/like");
 
         $this->assertDatabaseHas('review_likes', [
             'user_id' => $user->id,
@@ -108,8 +101,7 @@ class ReviewLikeTest extends TestCase
             'comment' => '自分のレビュー',
         ]);
 
-        $this->actingAs($user)
-            ->post("/reviews/{$review->id}/like");
+        $this->actingAs($user)->post("/reviews/{$review->id}/like");
 
         $this->assertDatabaseHas('review_likes', [
             'user_id' => $user->id,
@@ -132,6 +124,17 @@ class ReviewLikeTest extends TestCase
         $response = $this->post("/reviews/{$review->id}/like");
 
         $response->assertRedirect('/login');
+
+        $this->assertDatabaseCount('review_likes', 0);
+    }
+
+    public function test_nonexistent_review_returns_404_when_toggling_like(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post('/reviews/999999/like');
+
+        $response->assertStatus(404);
 
         $this->assertDatabaseCount('review_likes', 0);
     }

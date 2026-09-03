@@ -16,8 +16,7 @@ class FavoriteTest extends TestCase
         $user = User::factory()->create();
         $book = Book::factory()->create();
 
-        $response = $this
-            ->actingAs($user)
+        $response = $this->actingAs($user)
             ->from("/books/{$book->id}")
             ->post("/books/{$book->id}/favorites");
 
@@ -36,8 +35,7 @@ class FavoriteTest extends TestCase
 
         $user->favoriteBooks()->attach($book->id);
 
-        $response = $this
-            ->actingAs($user)
+        $response = $this->actingAs($user)
             ->from("/books/{$book->id}")
             ->post("/books/{$book->id}/favorites");
 
@@ -54,14 +52,9 @@ class FavoriteTest extends TestCase
         $user = User::factory()->create();
         $book = Book::factory()->create();
 
-        $this->actingAs($user)
-            ->post("/books/{$book->id}/favorites");
-
-        $this->actingAs($user)
-            ->post("/books/{$book->id}/favorites");
-
-        $this->actingAs($user)
-            ->post("/books/{$book->id}/favorites");
+        $this->actingAs($user)->post("/books/{$book->id}/favorites");
+        $this->actingAs($user)->post("/books/{$book->id}/favorites");
+        $this->actingAs($user)->post("/books/{$book->id}/favorites");
 
         $this->assertDatabaseHas('favorites', [
             'user_id' => $user->id,
@@ -78,8 +71,7 @@ class FavoriteTest extends TestCase
             'user_id' => $user->id,
         ]);
 
-        $this->actingAs($user)
-            ->post("/books/{$book->id}/favorites");
+        $this->actingAs($user)->post("/books/{$book->id}/favorites");
 
         $this->assertDatabaseHas('favorites', [
             'user_id' => $user->id,
@@ -103,11 +95,14 @@ class FavoriteTest extends TestCase
         $user->favoriteBooks()->attach($favoriteBook->id);
         $otherUser->favoriteBooks()->attach($otherFavoriteBook->id);
 
-        $response = $this
-            ->actingAs($user)
-            ->get('/favorites');
+        $response = $this->actingAs($user)->get('/favorites');
 
         $response->assertStatus(200);
+        $response->assertViewIs('favorites.index');
+        $response->assertViewHas('books', function ($books) use ($favoriteBook, $otherFavoriteBook) {
+            return $books->contains('id', $favoriteBook->id)
+                && ! $books->contains('id', $otherFavoriteBook->id);
+        });
         $response->assertSee('自分のお気に入り書籍');
         $response->assertDontSee('他人のお気に入り書籍');
     }
@@ -119,15 +114,14 @@ class FavoriteTest extends TestCase
 
         $user->favoriteBooks()->attach($books->pluck('id'));
 
-        $response = $this
-            ->actingAs($user)
-            ->get('/favorites');
+        $response = $this->actingAs($user)->get('/favorites');
 
         $response->assertStatus(200);
-
+        $response->assertViewIs('favorites.index');
         $response->assertViewHas('books', function ($books) {
-            return $books->count() === 10
-                && $books->total() === 11;
+            return $books->perPage() === 10
+                && $books->total() === 11
+                && $books->count() === 10;
         });
     }
 
@@ -145,6 +139,17 @@ class FavoriteTest extends TestCase
         $response = $this->post("/books/{$book->id}/favorites");
 
         $response->assertRedirect('/login');
+
+        $this->assertDatabaseCount('favorites', 0);
+    }
+
+    public function test_nonexistent_book_returns_404_when_toggling_favorite(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post('/books/999999/favorites');
+
+        $response->assertStatus(404);
 
         $this->assertDatabaseCount('favorites', 0);
     }
