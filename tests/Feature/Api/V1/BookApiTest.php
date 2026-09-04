@@ -497,6 +497,9 @@ class BookApiTest extends TestCase
         $response = $this->getJson('/api/v1/books?genre=999999');
 
         $response->assertStatus(404);
-        $response->assertJson(['error' => 'ジャンルが見つかりませんでした。']);
+        $response->assertJson([
+            'error' => 'Not Found',
+            'message' => 'ジャンルが見つかりませんでした。',
+        ]);
     }
 }
