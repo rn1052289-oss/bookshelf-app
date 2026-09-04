@@ -26,7 +26,8 @@ class BookController extends Controller
 
             if (! $genreExists) {
                 return response()->json([
-                    'error' => 'ジャンルが見つかりませんでした。',
+                    'error' => 'Not Found',
+                    'message' => 'ジャンルが見つかりませんでした。',
                 ], 404);
             }
         }
