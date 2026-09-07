@@ -80,18 +80,10 @@ class ReadingPlanSeeder extends Seeder
             ],
         ];
 
-        collect($readingPlans)->each(function (array $readingPlanData): void {
-            $readingPlan = ReadingPlan::findOrNew($readingPlanData['id']);
-
-            $readingPlan->id = $readingPlanData['id'];
-            $readingPlan->user_id = $readingPlanData['user_id'];
-            $readingPlan->book_id = $readingPlanData['book_id'];
-            $readingPlan->target_date = $readingPlanData['target_date'];
-            $readingPlan->status = $readingPlanData['status'];
-            $readingPlan->completed_at = $readingPlanData['completed_at'];
-            $readingPlan->reminded_at = $readingPlanData['reminded_at'];
-
-            $readingPlan->save();
+        ReadingPlan::unguarded(function () use ($readingPlans): void {
+            collect($readingPlans)->each(function (array $readingPlanData): void {
+                ReadingPlan::create($readingPlanData);
+            });
         });
     }
 }
