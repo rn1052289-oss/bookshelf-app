@@ -18,7 +18,6 @@ class ReadingPlanTest extends TestCase
             'target_date',
             'status',
             'completed_at',
-            'reminded_at',
         ], $readingPlan->getFillable());
     }
 
@@ -30,6 +29,5 @@ class ReadingPlanTest extends TestCase
         $this->assertSame('date', $casts['target_date']);
         $this->assertSame(ReadingPlanStatus::class, $casts['status']);
         $this->assertSame('datetime', $casts['completed_at']);
-        $this->assertSame('datetime', $casts['reminded_at']);
     }
 }

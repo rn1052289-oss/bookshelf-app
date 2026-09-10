@@ -31,7 +31,6 @@ class ReadingPlanSeeder extends Seeder
                 'target_date' => $today->copy()->addDays(3),
                 'status' => ReadingPlanStatus::InProgress,
                 'completed_at' => null,
-                'reminded_at' => null,
             ],
             [
                 'id' => 2,
@@ -40,7 +39,6 @@ class ReadingPlanSeeder extends Seeder
                 'target_date' => $today->copy(),
                 'status' => ReadingPlanStatus::InProgress,
                 'completed_at' => null,
-                'reminded_at' => null,
             ],
             [
                 'id' => 3,
@@ -49,7 +47,6 @@ class ReadingPlanSeeder extends Seeder
                 'target_date' => $today->copy()->subDays(3),
                 'status' => ReadingPlanStatus::InProgress,
                 'completed_at' => null,
-                'reminded_at' => null,
             ],
             [
                 'id' => 4,
@@ -58,7 +55,6 @@ class ReadingPlanSeeder extends Seeder
                 'target_date' => $today->copy()->addDays(7),
                 'status' => ReadingPlanStatus::InProgress,
                 'completed_at' => null,
-                'reminded_at' => null,
             ],
             [
                 'id' => 5,
@@ -67,7 +63,6 @@ class ReadingPlanSeeder extends Seeder
                 'target_date' => $today->copy()->subDays(10),
                 'status' => ReadingPlanStatus::Completed,
                 'completed_at' => $today->copy()->subDays(5),
-                'reminded_at' => null,
             ],
             [
                 'id' => 6,
@@ -76,7 +71,6 @@ class ReadingPlanSeeder extends Seeder
                 'target_date' => $today->copy()->addDays(5),
                 'status' => ReadingPlanStatus::InProgress,
                 'completed_at' => null,
-                'reminded_at' => null,
             ],
         ];
 

@@ -25,13 +25,11 @@ class NotificationController extends Controller
     /**
      * 通知を既読にする。
      */
-    public function read(Request $request, string $id): RedirectResponse
+    public function read(string $id): RedirectResponse
     {
         $notification = DatabaseNotification::findOrFail($id);
 
-        if (! $notification->notifiable->is($request->user())) {
-            abort(403);
-        }
+        $this->authorize('markAsRead', $notification);
 
         $notification->markAsRead();
 

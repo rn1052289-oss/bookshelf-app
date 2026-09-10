@@ -17,14 +17,12 @@ class ReadingPlan extends Model
         'target_date',
         'status',
         'completed_at',
-        'reminded_at',
     ];
 
     protected $casts = [
         'target_date' => 'date',
         'status' => ReadingPlanStatus::class,
         'completed_at' => 'datetime',
-        'reminded_at' => 'datetime',
     ];
 
     /**

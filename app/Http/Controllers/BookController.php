@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\SearchBookByIsbnRequest;
 use App\Http\Requests\StoreBookRequest;
 use App\Http\Requests\UpdateBookRequest;
 use App\Models\Book;
@@ -171,13 +172,10 @@ class BookController extends Controller
     /**
      * ISBNからGoogle Books APIで書籍情報を取得する。
      */
-    public function searchByIsbn(string $isbn, GoogleBooksService $googleBooksService): JsonResponse
+    public function searchByIsbn(SearchBookByIsbnRequest $request, string $isbn, GoogleBooksService $googleBooksService): JsonResponse
     {
-        if (! preg_match('/^\d{13}$/', $isbn)) {
-            return response()->json([
-                'error' => 'ISBNは13桁の数字で入力してください。',
-            ], 422);
-        }
+        $validated = $request->validated();
+        $isbn = $validated['isbn'];
 
         try {
             $book = $googleBooksService->searchByIsbn($isbn);
