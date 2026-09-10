@@ -26,7 +26,6 @@ class ReadingPlanFactory extends Factory
             'target_date' => fake()->dateTimeBetween('today', '+3 months'),
             'status' => ReadingPlanStatus::InProgress,
             'completed_at' => null,
-            'reminded_at' => null,
         ];
     }
 }

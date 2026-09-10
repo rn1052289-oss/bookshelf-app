@@ -12,6 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('review_likes', function (Blueprint $table) {
+            $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->foreignId('review_id')->constrained()->cascadeOnDelete();
             $table->timestamps();
