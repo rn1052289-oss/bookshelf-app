@@ -7,9 +7,11 @@ use App\Http\Requests\StoreReadingPlanRequest;
 use App\Http\Requests\UpdateReadingPlanRequest;
 use App\Models\Book;
 use App\Models\ReadingPlan;
+use App\Notifications\ReadingPlanReminderNotification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class ReadingPlanController extends Controller
@@ -119,7 +121,15 @@ class ReadingPlanController extends Controller
     {
         $this->authorize('delete', $plan);
 
-        $plan->delete();
+        DB::transaction(function () use ($plan): void {
+            $plan->user
+                ->notifications()
+                ->where('type', ReadingPlanReminderNotification::class)
+                ->where('data->reading_plan_id', $plan->id)
+                ->delete();
+
+            $plan->delete();
+        });
 
         return redirect()
             ->route('reading-plans.index')
