@@ -2,10 +2,13 @@
 
 namespace Tests\Feature\Api\V1;
 
+use App\Enums\ReadingPlanReminderTiming;
 use App\Models\Book;
 use App\Models\Genre;
+use App\Models\ReadingPlan;
 use App\Models\Review;
 use App\Models\User;
+use App\Notifications\ReadingPlanReminderNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -261,6 +264,47 @@ class BookApiTest extends TestCase
         $this->assertDatabaseMissing('favorites', ['book_id' => $book->id]);
         $this->assertDatabaseMissing('reviews', ['book_id' => $book->id]);
         $this->assertDatabaseMissing('review_likes', ['review_id' => $review->id]);
+    }
+
+    public function test_api_book_deletion_also_deletes_related_reminder_notification()
+    {
+        $user = User::factory()->create();
+
+        Sanctum::actingAs($user);
+
+        $book = Book::factory()->create([
+            'user_id' => $user->id,
+        ]);
+
+        $readingPlan = ReadingPlan::factory()->create([
+            'user_id' => $user->id,
+            'book_id' => $book->id,
+        ]);
+
+        $user->notify(
+            new ReadingPlanReminderNotification(
+                $readingPlan,
+                ReadingPlanReminderTiming::ThreeDaysBefore
+            )
+        );
+
+        $notification = $user->notifications()->firstOrFail();
+
+        $response = $this->deleteJson("/api/v1/books/{$book->id}");
+
+        $response->assertStatus(204);
+
+        $this->assertDatabaseMissing('books', [
+            'id' => $book->id,
+        ]);
+
+        $this->assertDatabaseMissing('reading_plans', [
+            'id' => $readingPlan->id,
+        ]);
+
+        $this->assertDatabaseMissing('notifications', [
+            'id' => $notification->id,
+        ]);
     }
 
     public function test_book_resource_format()

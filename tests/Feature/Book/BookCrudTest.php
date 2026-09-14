@@ -2,11 +2,13 @@
 
 namespace Tests\Feature\Book;
 
+use App\Enums\ReadingPlanReminderTiming;
 use App\Models\Book;
 use App\Models\Genre;
 use App\Models\ReadingPlan;
 use App\Models\Review;
 use App\Models\User;
+use App\Notifications\ReadingPlanReminderNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -249,6 +251,43 @@ class BookCrudTest extends TestCase
 
         $this->assertDatabaseMissing('reading_plans', [
             'book_id' => $book->id,
+        ]);
+    }
+
+    public function test_book_deletion_also_deletes_related_reminder_notification()
+    {
+        $user = User::factory()->create();
+
+        $book = Book::factory()->for($user)->create();
+
+        $readingPlan = ReadingPlan::factory()->create([
+            'user_id' => $user->id,
+            'book_id' => $book->id,
+        ]);
+
+        $user->notify(
+            new ReadingPlanReminderNotification(
+                $readingPlan,
+                ReadingPlanReminderTiming::ThreeDaysBefore
+            )
+        );
+
+        $notification = $user->notifications()->firstOrFail();
+
+        $response = $this->actingAs($user)->delete("/books/{$book->id}");
+
+        $response->assertRedirect(route('books.index'));
+
+        $this->assertDatabaseMissing('books', [
+            'id' => $book->id,
+        ]);
+
+        $this->assertDatabaseMissing('reading_plans', [
+            'id' => $readingPlan->id,
+        ]);
+
+        $this->assertDatabaseMissing('notifications', [
+            'id' => $notification->id,
         ]);
     }
 
