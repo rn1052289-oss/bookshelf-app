@@ -160,7 +160,9 @@ class BookController extends Controller
     {
         $this->authorize('delete', $book);
 
-        DB::transaction(function () use ($book) {
+        DB::transaction(function () use ($book): void {
+            $book->deleteReadingPlanReminderNotifications();
+
             $book->delete();
         });
 

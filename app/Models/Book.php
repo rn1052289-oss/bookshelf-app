@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Notifications\ReadingPlanReminderNotification;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -64,5 +65,22 @@ class Book extends Model
     public function readingPlans(): HasMany
     {
         return $this->hasMany(ReadingPlan::class);
+    }
+
+    /**
+     * 書籍に紐付く読書計画のリマインダー通知を削除する。
+     */
+    public function deleteReadingPlanReminderNotifications(): void
+    {
+        $this->readingPlans()
+            ->with('user')
+            ->get()
+            ->each(function (ReadingPlan $readingPlan): void {
+                $readingPlan->user
+                    ->notifications()
+                    ->where('type', ReadingPlanReminderNotification::class)
+                    ->where('data->reading_plan_id', $readingPlan->id)
+                    ->delete();
+            });
     }
 }
