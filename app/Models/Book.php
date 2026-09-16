@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Notifications\DatabaseNotification;
 
 class Book extends Model
 {
@@ -72,15 +73,15 @@ class Book extends Model
      */
     public function deleteReadingPlanReminderNotifications(): void
     {
-        $this->readingPlans()
-            ->with('user')
-            ->get()
-            ->each(function (ReadingPlan $readingPlan): void {
-                $readingPlan->user
-                    ->notifications()
-                    ->where('type', ReadingPlanReminderNotification::class)
-                    ->where('data->reading_plan_id', $readingPlan->id)
-                    ->delete();
-            });
+        $readingPlanIds = $this->readingPlans()->pluck('id');
+
+        if ($readingPlanIds->isEmpty()) {
+            return;
+        }
+
+        DatabaseNotification::query()
+            ->where('type', ReadingPlanReminderNotification::class)
+            ->whereIn('data->reading_plan_id', $readingPlanIds)
+            ->delete();
     }
 }
